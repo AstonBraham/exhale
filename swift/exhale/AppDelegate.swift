@@ -7,8 +7,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var windows: [NSWindow] = []
     var settingsWindow: NSWindow!
     var settingsModel = SettingsModel()
-    var inhaleColorSubscription: AnyCancellable?
-    var exhaleColorSubscription: AnyCancellable?
     var overlayOpacitySubscription: AnyCancellable?
     var isAnimatingSubscription: AnyCancellable?
     var subscriptions = Set<AnyCancellable>()
@@ -135,6 +133,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.mainMenuWindow)) + 1) // Window level in front of the menu bar
             window.alphaValue = CGFloat(settingsModel.overlayOpacity)
             window.isOpaque = false
+            window.backgroundColor = .clear
             window.ignoresMouseEvents = true
             window.setFrame(screen.frame, display: true)
             // window.collectionBehavior = [.canJoinAllSpaces]  // Ensures window appears in all spaces
@@ -142,19 +141,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             windows.append(window)
         }
         
-        // Subscriptions to update window colors and opacity
-        inhaleColorSubscription = settingsModel.$inhaleColor.sink { [unowned self] newColor in
-            for window in self.windows {
-                window.backgroundColor = NSColor(newColor)
-            }
-        }
-        
-        exhaleColorSubscription = settingsModel.$exhaleColor.sink { [unowned self] newColor in
-            for window in self.windows {
-                window.backgroundColor = NSColor(newColor)
-            }
-        }
-        
+        // Subscriptions to update window opacity
+        // Note: Colors are handled by ContentView via SwiftUI, not by window.backgroundColor
         overlayOpacitySubscription = settingsModel.$overlayOpacity.sink { [unowned self] newOpacity in
             for window in self.windows {
                 window.alphaValue = 1.0
@@ -175,7 +163,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         // Initialize the Settings Window
         settingsWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -210,7 +198,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             randomizedTimingPostInhaleHold: Binding(get: { self.settingsModel.randomizedTimingPostInhaleHold }, set: { self.settingsModel.randomizedTimingPostInhaleHold = $0 }),
             randomizedTimingExhale: Binding(get: { self.settingsModel.randomizedTimingExhale }, set: { self.settingsModel.randomizedTimingExhale = $0 }),
             randomizedTimingPostExhaleHold: Binding(get: { self.settingsModel.randomizedTimingPostExhaleHold }, set: { self.settingsModel.randomizedTimingPostExhaleHold = $0 }),
-            isAnimating: Binding(get: { self.settingsModel.isAnimating }, set: { self.settingsModel.isAnimating = $0 })
+            isAnimating: Binding(get: { self.settingsModel.isAnimating }, set: { self.settingsModel.isAnimating = $0 }),
+            circlePositionX: Binding(get: { self.settingsModel.circlePositionX }, set: { self.settingsModel.circlePositionX = $0 }),
+            circlePositionY: Binding(get: { self.settingsModel.circlePositionY }, set: { self.settingsModel.circlePositionY = $0 }),
+            circleMaxSize: Binding(get: { self.settingsModel.circleMaxSize }, set: { self.settingsModel.circleMaxSize = $0 }),
+            circleFillMode: Binding<CircleFillMode>(
+                get: { self.settingsModel.circleFillMode },
+                set: { self.settingsModel.circleFillMode = $0 }
+            ),
+            circleMaxScreenFill: Binding(get: { self.settingsModel.circleMaxScreenFill }, set: { self.settingsModel.circleMaxScreenFill = $0 }),
+            eyeBlinkColor: Binding(get: { self.settingsModel.eyeBlinkColor }, set: { self.settingsModel.eyeBlinkColor = $0 }),
+            eyeBlinkSize: Binding(get: { self.settingsModel.eyeBlinkSize }, set: { self.settingsModel.eyeBlinkSize = $0 }),
+            eyeBlinkDuration: Binding(get: { self.settingsModel.eyeBlinkDuration }, set: { self.settingsModel.eyeBlinkDuration = $0 }),
+            eyeBlinkInterval: Binding(get: { self.settingsModel.eyeBlinkInterval }, set: { self.settingsModel.eyeBlinkInterval = $0 })
         ).environmentObject(settingsModel))
         
         settingsWindow.title = "exhale"

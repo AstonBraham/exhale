@@ -29,6 +29,15 @@ struct SettingsView: View {
     @Binding var randomizedTimingExhale: Double
     @Binding var randomizedTimingPostExhaleHold: Double
     @Binding var isAnimating: Bool
+    @Binding var circlePositionX: Double
+    @Binding var circlePositionY: Double
+    @Binding var circleMaxSize: Double
+    @Binding var circleFillMode: CircleFillMode
+    @Binding var circleMaxScreenFill: Double
+    @Binding var eyeBlinkColor: Color
+    @Binding var eyeBlinkSize: Double
+    @Binding var eyeBlinkDuration: Double
+    @Binding var eyeBlinkInterval: Double
     
     private let labelWidth: CGFloat = 130
     private let controlWidth: CGFloat = 90
@@ -284,6 +293,83 @@ struct SettingsView: View {
                                 }
                                 .help("Choose the Shape of the animation. Fullscreen changes the color of every pixel on the screen, starting with the Inhale Color at the beginning of the inhale phase and transitioning to the Exhale Color, then for the exhale phase transitioning back from the Exhale Color to the Inhale Color (Fullscreen uses Gradient Type Constant, setting it to Linear Gradient has no effect). Rectangle rises vertically from the bottom of the screen to the top for the inhale phase, and then lowers back down from the top to the bottom for the exhale phase. Circle grows outwards starting from a single point in the center of the screen to the outer edges of the screen for the inhale phase, and then shrinks back to the center again for the exhale phase.")
                                 
+                                // Circle Position X
+                                CombinedStepperTextField(
+                                    title: "Circle Position X (%)",
+                                    value: Binding(
+                                        get: { self.circlePositionX * 100 },
+                                        set: { self.circlePositionX = max(0, min(100, $0)) / 100 }
+                                    ),
+                                    limits: (min: 0, max: 100)
+                                )
+                                .disabled(shape != .circle)
+                                .help("Choose the horizontal position of the circle on the screen (0% = left edge, 50% = center, 100% = right edge). Only applies when Shape is set to Circle.")
+                                .onChange(of: circlePositionX) { _ in
+                                    settingsModel.triggerAnimationReset()
+                                }
+                                
+                                // Circle Position Y
+                                CombinedStepperTextField(
+                                    title: "Circle Position Y (%)",
+                                    value: Binding(
+                                        get: { self.circlePositionY * 100 },
+                                        set: { self.circlePositionY = max(0, min(100, $0)) / 100 }
+                                    ),
+                                    limits: (min: 0, max: 100)
+                                )
+                                .disabled(shape != .circle)
+                                .help("Choose the vertical position of the circle on the screen (0% = bottom edge, 50% = center, 100% = top edge). Only applies when Shape is set to Circle.")
+                                .onChange(of: circlePositionY) { _ in
+                                    settingsModel.triggerAnimationReset()
+                                }
+                                
+                                // Circle Max Size
+                                CombinedStepperTextField(
+                                    title: "Circle Max Size",
+                                    value: $circleMaxSize,
+                                    limits: (min: 0.1, max: 5.0)
+                                )
+                                .disabled(shape != .circle)
+                                .help("Choose the maximum size multiplier for the circle (1.0 = default size, larger values = bigger circle). Only applies when Shape is set to Circle.")
+                                .onChange(of: circleMaxSize) { _ in
+                                    settingsModel.triggerAnimationReset()
+                                }
+                                
+                                // Circle Fill Mode
+                                HStack {
+                                    Text("Circle Fill Mode")
+                                        .frame(width: labelWidth, alignment: .leading)
+                                    
+                                    Picker("", selection: $circleFillMode) {
+                                        ForEach(CircleFillMode.allCases) { mode in
+                                            Text(mode.rawValue).tag(mode)
+                                        }
+                                    }
+                                    .pickerStyle(SegmentedPickerStyle())
+                                    .frame(width: controlWidth)
+                                    .disabled(shape != .circle)
+                                    .labelsHidden()
+                                    .onChange(of: circleFillMode) { _ in
+                                        settingsModel.triggerAnimationReset()
+                                    }
+                                }
+                                .help("Choose whether the circle should be filled (solid) or stroked (outline only). Only applies when Shape is set to Circle.")
+                                
+                                // Circle Max Screen Fill
+                                CombinedStepperTextField(
+                                    title: "Circle Max Screen Fill (%)",
+                                    value: Binding(
+                                        get: { self.circleMaxScreenFill * 100 },
+                                        set: { self.circleMaxScreenFill = max(0, min(100, $0)) / 100 }
+                                    ),
+                                    limits: (min: 0, max: 100)
+                                )
+                                .disabled(shape != .circle)
+                                .help("Choose the maximum percentage of screen size that the circle can fill (100% = can fill entire screen, lower values = limited size). Only applies when Shape is set to Circle.")
+                                .onChange(of: circleMaxScreenFill) { _ in
+                                    settingsModel.triggerAnimationReset()
+                                }
+                                
                                 // Gradient Picker
                                 HStack {
                                     Text("Gradient")
@@ -385,6 +471,53 @@ struct SettingsView: View {
                                 )
                                 .help("Choose the extent to which the duration of every inhale and exhale phase (as well as the end-of-phase hold if Post-Inhale Hold or Post-Exhale Hold are set to non-zero values) lengthens or shortens in duration over time. Drift is multiplicative, so a value of 1% will gradually lengthen the duration (by 1% each cycle), allowing you to extend the duration of your breath over time, whereas a value of -25% would shorten the duration of each phase (by 25%) each cycle. Values of 1% - 5% are recommended for working on slowly elongating one's breath cycle.")
                                 .onChange(of: drift) { _ in
+                                    settingsModel.triggerAnimationReset()
+                                }
+                                
+                                // Eye Blink Color
+                                HStack {
+                                    Text("Eye Blink Color")
+                                        .frame(width: labelWidth, alignment: .leading)
+                                    
+                                    ColorPicker("", selection: $eyeBlinkColor, supportsOpacity: false)
+                                        .labelsHidden()
+                                        .frame(alignment: .trailing)
+                                        .onChange(of: eyeBlinkColor) { _ in
+                                            settingsModel.triggerAnimationReset()
+                                        }
+                                }
+                                .help("Choose the color for the blinking eye circle at the top of the screen.")
+                                
+                                // Eye Blink Size
+                                CombinedStepperTextField(
+                                    title: "Eye Blink Size",
+                                    value: $eyeBlinkSize,
+                                    limits: (min: 10, max: 200)
+                                )
+                                .help("Choose the size (diameter) of the blinking eye circle, in points.")
+                                .onChange(of: eyeBlinkSize) { _ in
+                                    settingsModel.triggerAnimationReset()
+                                }
+                                
+                                // Eye Blink Duration
+                                CombinedStepperTextField(
+                                    title: "Eye Blink Duration (s)",
+                                    value: $eyeBlinkDuration,
+                                    limits: (min: 0.1, max: 2.0)
+                                )
+                                .help("Choose the duration of one complete blink (close and open), in seconds.")
+                                .onChange(of: eyeBlinkDuration) { _ in
+                                    settingsModel.triggerAnimationReset()
+                                }
+                                
+                                // Eye Blink Interval
+                                CombinedStepperTextField(
+                                    title: "Eye Blink Interval (s)",
+                                    value: $eyeBlinkInterval,
+                                    limits: (min: 0.5, max: 10.0)
+                                )
+                                .help("Choose the time between blinks (while eye is open), in seconds.")
+                                .onChange(of: eyeBlinkInterval) { _ in
                                     settingsModel.triggerAnimationReset()
                                 }
                             }

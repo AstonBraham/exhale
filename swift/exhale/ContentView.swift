@@ -70,14 +70,7 @@ struct ContentView: View {
     @State private var overlayOpacity: Double = 0.1
     @State private var showSettings = false
     @State private var cycleCount: Int = 0
-    
-    var maxCircleScale: CGFloat {
-        guard let screen = NSScreen.main else { return settingsModel.colorFillGradient == .on ? 2 : 1 }
-        let screenWidth = screen.frame.width
-        let screenHeight = screen.frame.height
-        let maxDimension = max(screenWidth, screenHeight)
-        return maxDimension / min(screenWidth, screenHeight)
-    }
+    @State private var eyeBlinkProgress: CGFloat = 1.0
     
     var body: some View {
         ZStack {
@@ -122,34 +115,53 @@ struct ContentView: View {
                                 )
                             
                         case .circle:
-                            Circle()
-                                .colorTransitionFill(
-                                    settingsModel: settingsModel,
-                                    animationProgress: animationProgress,
-                                    breathingPhase: breathingPhase,
-                                    endRadius: (min(geometry.size.width, geometry.size.height)
-                                                * animationProgress * maxCircleScale)/2
-                                )
-                                .frame(
-                                    width: min(geometry.size.width, geometry.size.height)
-                                    * animationProgress * maxCircleScale,
-                                    height: min(geometry.size.width, geometry.size.height)
-                                    * animationProgress * maxCircleScale
-                                )
-                                .scaleEffect(
-                                    x: animationProgress * (settingsModel.colorFillGradient == .on ? 2 : 1),
-                                    y: animationProgress * (settingsModel.colorFillGradient == .on ? 2 : 1),
-                                    anchor: .center
-                                )
-                                .position(
-                                    x: geometry.size.width/2,
-                                    y: geometry.size.height/2
-                                )
+                            let baseSize = min(geometry.size.width, geometry.size.height)
+                            let maxAllowedSize = baseSize * settingsModel.circleMaxScreenFill
+                            let calculatedSize = baseSize * animationProgress * settingsModel.circleMaxSize
+                            let finalSize = min(calculatedSize, maxAllowedSize)
+                            let isInhalePhase = breathingPhase == .inhale || breathingPhase == .holdAfterInhale
+                            let circleColor = isInhalePhase ? settingsModel.inhaleColor : settingsModel.exhaleColor
+                            
+                            Group {
+                                if settingsModel.circleFillMode == .filled {
+                                    Circle()
+                                        .colorTransitionFill(
+                                            settingsModel: settingsModel,
+                                            animationProgress: animationProgress,
+                                            breathingPhase: breathingPhase,
+                                            endRadius: finalSize/2
+                                        )
+                                        .frame(width: finalSize, height: finalSize)
+                                } else {
+                                    Circle()
+                                        .stroke(circleColor, lineWidth: 2)
+                                        .frame(width: finalSize, height: finalSize)
+                                }
+                            }
+                            .scaleEffect(
+                                x: animationProgress * (settingsModel.colorFillGradient == .on && settingsModel.circleFillMode == .filled ? 2 : 1),
+                                y: animationProgress * (settingsModel.colorFillGradient == .on && settingsModel.circleFillMode == .filled ? 2 : 1),
+                                anchor: .center
+                            )
+                            .position(
+                                x: geometry.size.width * settingsModel.circlePositionX,
+                                y: geometry.size.height * settingsModel.circlePositionY
+                            )
                         }
                         
                     }
                     .opacity(settingsModel.overlayOpacity)
                 }
+                
+                // Eye blink circle at top of screen (always visible)
+                Circle()
+                    .fill(settingsModel.eyeBlinkColor)
+                    .frame(width: settingsModel.eyeBlinkSize, height: settingsModel.eyeBlinkSize)
+                    .scaleEffect(x: 1.0, y: eyeBlinkProgress, anchor: .center)
+                    .position(
+                        x: geometry.size.width / 2,
+                        y: settingsModel.eyeBlinkSize / 2
+                    )
             }
             
             
@@ -179,11 +191,26 @@ struct ContentView: View {
                     randomizedTimingPostInhaleHold: $settingsModel.randomizedTimingPostInhaleHold,
                     randomizedTimingExhale: $settingsModel.randomizedTimingExhale,
                     randomizedTimingPostExhaleHold: $settingsModel.randomizedTimingPostExhaleHold,
-                    isAnimating: $settingsModel.isAnimating
+                    isAnimating: $settingsModel.isAnimating,
+                    circlePositionX: $settingsModel.circlePositionX,
+                    circlePositionY: $settingsModel.circlePositionY,
+                    circleMaxSize: $settingsModel.circleMaxSize,
+                    circleFillMode: Binding<CircleFillMode>(
+                        get: { self.settingsModel.circleFillMode },
+                        set: { self.settingsModel.circleFillMode = $0 }
+                    ),
+                    circleMaxScreenFill: $settingsModel.circleMaxScreenFill,
+                    eyeBlinkColor: $settingsModel.eyeBlinkColor,
+                    eyeBlinkSize: $settingsModel.eyeBlinkSize,
+                    eyeBlinkDuration: $settingsModel.eyeBlinkDuration,
+                    eyeBlinkInterval: $settingsModel.eyeBlinkInterval
                 )
             }
         }
-        .onAppear(perform: startBreathingCycle)
+        .onAppear {
+            startBreathingCycle()
+            startEyeBlinking()
+        }
         .onChange(of: settingsModel.isAnimating) { newValue in
             if !newValue {
                 resetAnimation()
@@ -302,6 +329,29 @@ struct ContentView: View {
             exhale()
         case .holdAfterExhale:
             holdAfterExhale()
+        }
+    }
+    
+    func startEyeBlinking() {
+        eyeBlink()
+    }
+    
+    func eyeBlink() {
+        // Close eye (scale Y to 0)
+        withAnimation(.linear(duration: settingsModel.eyeBlinkDuration / 2)) {
+            eyeBlinkProgress = 0.0
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + settingsModel.eyeBlinkDuration / 2) {
+            // Open eye (scale Y back to 1)
+            withAnimation(.linear(duration: settingsModel.eyeBlinkDuration / 2)) {
+                self.eyeBlinkProgress = 1.0
+            }
+            
+            // Schedule next blink
+            DispatchQueue.main.asyncAfter(deadline: .now() + self.settingsModel.eyeBlinkDuration / 2 + self.settingsModel.eyeBlinkInterval) {
+                self.eyeBlink()
+            }
         }
     }
 }

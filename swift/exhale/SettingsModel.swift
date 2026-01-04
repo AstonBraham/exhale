@@ -126,6 +126,60 @@ class SettingsModel: ObservableObject {
     
     @Published var isPaused: Bool = false
     
+    @Published var circlePositionX: Double {
+        didSet {
+            defaults.set(circlePositionX, forKey: "circlePositionX")
+        }
+    }
+    
+    @Published var circlePositionY: Double {
+        didSet {
+            defaults.set(circlePositionY, forKey: "circlePositionY")
+        }
+    }
+    
+    @Published var circleMaxSize: Double {
+        didSet {
+            defaults.set(circleMaxSize, forKey: "circleMaxSize")
+        }
+    }
+    
+    @Published var circleFillMode: CircleFillMode {
+        didSet {
+            defaults.set(circleFillMode.rawValue, forKey: "circleFillMode")
+        }
+    }
+    
+    @Published var circleMaxScreenFill: Double {
+        didSet {
+            defaults.set(circleMaxScreenFill, forKey: "circleMaxScreenFill")
+        }
+    }
+    
+    @Published var eyeBlinkColor: Color {
+        didSet {
+            saveColor(eyeBlinkColor, forKey: "eyeBlinkColor")
+        }
+    }
+    
+    @Published var eyeBlinkSize: Double {
+        didSet {
+            defaults.set(eyeBlinkSize, forKey: "eyeBlinkSize")
+        }
+    }
+    
+    @Published var eyeBlinkDuration: TimeInterval {
+        didSet {
+            defaults.set(eyeBlinkDuration, forKey: "eyeBlinkDuration")
+        }
+    }
+    
+    @Published var eyeBlinkInterval: TimeInterval {
+        didSet {
+            defaults.set(eyeBlinkInterval, forKey: "eyeBlinkInterval")
+        }
+    }
+    
     func triggerAnimationReset() {
         resetAnimation = true
         resetAnimation = false
@@ -167,6 +221,15 @@ class SettingsModel: ObservableObject {
         self.randomizedTimingExhale = 0
         self.randomizedTimingPostExhaleHold = 0
         self.isAnimating = true
+        self.circlePositionX = 0.5
+        self.circlePositionY = 0.5
+        self.circleMaxSize = 1.0
+        self.circleFillMode = .filled
+        self.circleMaxScreenFill = 1.0
+        self.eyeBlinkColor = Color.black
+        self.eyeBlinkSize = 50.0
+        self.eyeBlinkDuration = 0.2
+        self.eyeBlinkInterval = 3.0
         
         self.backgroundColor = loadColor(forKey: "backgroundColor") ?? Color.clear
         self.inhaleColor = loadColor(forKey: "inhaleColor") ?? Color(red: 1, green: 0, blue: 0)
@@ -232,6 +295,43 @@ class SettingsModel: ObservableObject {
         if defaults.object(forKey: "randomizedTimingPostExhaleHold") != nil {
             self.randomizedTimingPostExhaleHold = defaults.double(forKey: "randomizedTimingPostExhaleHold")
         }
+        
+        if defaults.object(forKey: "circlePositionX") != nil {
+            self.circlePositionX = defaults.double(forKey: "circlePositionX")
+        }
+        
+        if defaults.object(forKey: "circlePositionY") != nil {
+            self.circlePositionY = defaults.double(forKey: "circlePositionY")
+        }
+        
+        if defaults.object(forKey: "circleMaxSize") != nil {
+            self.circleMaxSize = defaults.double(forKey: "circleMaxSize")
+        }
+        
+        if let savedFillMode = defaults.string(forKey: "circleFillMode"),
+           let fillMode = CircleFillMode(rawValue: savedFillMode) {
+            self.circleFillMode = fillMode
+        } else {
+            self.circleFillMode = .filled
+        }
+        
+        if defaults.object(forKey: "circleMaxScreenFill") != nil {
+            self.circleMaxScreenFill = defaults.double(forKey: "circleMaxScreenFill")
+        }
+        
+        self.eyeBlinkColor = loadColor(forKey: "eyeBlinkColor") ?? Color(red: 0, green: 0, blue: 0)
+        
+        if defaults.object(forKey: "eyeBlinkSize") != nil {
+            self.eyeBlinkSize = defaults.double(forKey: "eyeBlinkSize")
+        }
+        
+        if defaults.object(forKey: "eyeBlinkDuration") != nil {
+            self.eyeBlinkDuration = defaults.double(forKey: "eyeBlinkDuration")
+        }
+        
+        if defaults.object(forKey: "eyeBlinkInterval") != nil {
+            self.eyeBlinkInterval = defaults.double(forKey: "eyeBlinkInterval")
+        }
     }
     
     private func saveColor(_ color: Color, forKey key: String) {
@@ -272,8 +372,17 @@ class SettingsModel: ObservableObject {
         self.randomizedTimingPostInhaleHold = 0
         self.randomizedTimingExhale = 0
         self.randomizedTimingPostExhaleHold = 0
+        self.circlePositionX = 0.5
+        self.circlePositionY = 0.5
+        self.circleMaxSize = 1.0
+        self.circleFillMode = .filled
+        self.circleMaxScreenFill = 1.0
+        self.eyeBlinkColor = Color.black
+        self.eyeBlinkSize = 50.0
+        self.eyeBlinkDuration = 0.2
+        self.eyeBlinkInterval = 3.0
         
-        let keys = ["backgroundColor", "inhaleColor", "exhaleColor", "inhaleDuration", "postInhaleHoldDuration", "exhaleDuration", "postExhaleHoldDuration", "drift", "overlayOpacity", "colorFillGradient", "shape", "animationMode", "randomizedTimingInhale", "randomizedTimingPostInhaleHold", "randomizedTimingExhale", "randomizedTimingPostExhaleHold"]
+        let keys = ["backgroundColor", "inhaleColor", "exhaleColor", "inhaleDuration", "postInhaleHoldDuration", "exhaleDuration", "postExhaleHoldDuration", "drift", "overlayOpacity", "colorFillGradient", "shape", "animationMode", "randomizedTimingInhale", "randomizedTimingPostInhaleHold", "randomizedTimingExhale", "randomizedTimingPostExhaleHold", "circlePositionX", "circlePositionY", "circleMaxSize", "circleFillMode", "circleMaxScreenFill", "eyeBlinkColor", "eyeBlinkSize", "eyeBlinkDuration", "eyeBlinkInterval"]
         for key in keys {
             defaults.removeObject(forKey: key)
         }

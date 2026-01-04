@@ -41,3 +41,10 @@ enum ColorFillGradient: String, CaseIterable, Identifiable {
     
     var id: String { rawValue }
 }
+
+enum CircleFillMode: String, CaseIterable, Identifiable {
+    case filled = "Filled"
+    case stroked = "Stroked"
+    
+    var id: String { rawValue }
+}
